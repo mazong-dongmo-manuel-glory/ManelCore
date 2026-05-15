@@ -1,0 +1,65 @@
+Running `(cd /Users/mazong/.pub-cache/hosted/pub.dev/objective_c-9.3.0/; TMPDIR=/var/folders/kb/c07crx21431_0bwwkjlpq05m0000gn/T/ PATH=/Users/mazong/Documents/ManelCore/.venv/bin:/opt/homebrew/bin:/Users/mazong/flutter/bin:/Users/mazong/Library/Application Support/Code/User/globalStorage/github.copilot-chat/debugCommand:/Users/mazong/Library/Application Support/Code/User/globalStorage/github.copilot-chat/copilotCli:/Users/mazong/flutter/bin/:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/opt/pkg/env/active/bin:/opt/pmk/env/global/bin:/Library/Apple/usr/bin:/opt/homebrew/bin:/Users/mazong/flutter/bin/:/Users/mazong/Library/Application Support/Code/User/globalStorage/github.copilot-chat/debugCommand:/Users/mazong/Library/Application Support/Code/User/globalStorage/github.copilot-chat/copilotCli:/Users/mazong/.local/bin:/Users/mazong/.antigravity/antigravity/bin:/Users/mazong/flutter/bin:/Users/mazong/.lmstudio/bin:/Users/mazong/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/bundled/scripts/noConfigScripts:/Users/mazong/.lmstudio/bin HOME=/Users/mazong /Users/mazong/flutter/bin/cache/dart-sdk/bin/dart --packages=/Users/mazong/Documents/ManelCore/manelcore/.dart_tool/package_config.json /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/objective_c/5f31b8d621/hook.dill --config=/Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/objective_c/5f31b8d621/input.json )`.
+INFO: 2026-05-12 14:10:04.255172: Running `/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang --version`.
+
+INFO: 2026-05-12 14:10:04.369284: Running `/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang --version`.
+
+INFO: 2026-05-12 14:10:04.379440: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk -target x86_64-apple-darwin -mmacos-version-min=13 -c /Users/mazong/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/include/dart_api_dl.c -fpic -I src -o /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/include/dart_api_dl.c.o
+
+INFO: 2026-05-12 14:10:04.379707: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk -target x86_64-apple-darwin -mmacos-version-min=13 -c /Users/mazong/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/objective_c.c -fpic -I src -o /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/objective_c.c.o
+
+INFO: 2026-05-12 14:10:04.379819: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk -target x86_64-apple-darwin -mmacos-version-min=13 -c /Users/mazong/.pub-cache/hosted/pub.dev/objective_c-9.3.0/test/util.c -fpic -I src -o /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/test/util.c.o
+
+INFO: 2026-05-12 14:10:04.379907: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk -target x86_64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/mazong/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/input_stream_adapter.m -fpic -I src -o /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/input_stream_adapter.m.o
+
+INFO: 2026-05-12 14:10:04.379988: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk -target x86_64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/mazong/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/objective_c.m -fpic -I src -o /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/objective_c.m.o
+
+INFO: 2026-05-12 14:10:04.380067: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk -target x86_64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/mazong/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/observer.m -fpic -I src -o /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/observer.m.o
+
+INFO: 2026-05-12 14:10:04.380145: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk -target x86_64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/mazong/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/ns_number.m -fpic -I src -o /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/ns_number.m.o
+
+INFO: 2026-05-12 14:10:04.380221: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk -target x86_64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/mazong/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/protocol.m -fpic -I src -o /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/protocol.m.o
+
+INFO: 2026-05-12 14:10:04.380298: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk -target x86_64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/mazong/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/objective_c_bindings_generated.m -fpic -I src -o /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/objective_c_bindings_generated.m.o
+
+INFO: 2026-05-12 14:10:04.474988: 
+INFO: 2026-05-12 14:10:04.475080: 
+INFO: 2026-05-12 14:10:04.475106: Generated /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/objective_c.c.o
+
+INFO: 2026-05-12 14:10:04.477730: 
+INFO: 2026-05-12 14:10:04.477764: 
+INFO: 2026-05-12 14:10:04.477773: Generated /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/include/dart_api_dl.c.o
+
+INFO: 2026-05-12 14:10:04.486671: 
+INFO: 2026-05-12 14:10:04.486709: 
+INFO: 2026-05-12 14:10:04.486718: Generated /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/test/util.c.o
+
+INFO: 2026-05-12 14:10:04.490771: 
+INFO: 2026-05-12 14:10:04.490826: 
+INFO: 2026-05-12 14:10:04.490846: Generated /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/observer.m.o
+
+INFO: 2026-05-12 14:10:04.491492: 
+INFO: 2026-05-12 14:10:04.491520: 
+INFO: 2026-05-12 14:10:04.491529: Generated /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/protocol.m.o
+
+INFO: 2026-05-12 14:10:04.711414: 
+INFO: 2026-05-12 14:10:04.711451: 
+INFO: 2026-05-12 14:10:04.711460: Generated /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/ns_number.m.o
+
+INFO: 2026-05-12 14:10:04.716800: 
+INFO: 2026-05-12 14:10:04.716830: 
+INFO: 2026-05-12 14:10:04.716839: Generated /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/objective_c.m.o
+
+INFO: 2026-05-12 14:10:04.718968: 
+INFO: 2026-05-12 14:10:04.718993: 
+INFO: 2026-05-12 14:10:04.719002: Generated /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/input_stream_adapter.m.o
+
+INFO: 2026-05-12 14:10:04.724742: 
+INFO: 2026-05-12 14:10:04.724768: 
+INFO: 2026-05-12 14:10:04.724777: Generated /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/objective_c_bindings_generated.m.o
+
+INFO: 2026-05-12 14:10:04.725044: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -shared -Wl,-encryptable -undefined dynamic_lookup -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk -target x86_64-apple-darwin -mmacos-version-min=13 /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/include/dart_api_dl.c.o /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/objective_c.c.o /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/test/util.c.o /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/input_stream_adapter.m.o /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/objective_c.m.o /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/observer.m.o /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/ns_number.m.o /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/protocol.m.o /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/objective_c_bindings_generated.m.o -o /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/objective_c.dylib
+
+INFO: 2026-05-12 14:10:04.837968: 
+INFO: 2026-05-12 14:10:04.838017: 
+INFO: 2026-05-12 14:10:04.838030: Generated /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/objective_c.dylib
+

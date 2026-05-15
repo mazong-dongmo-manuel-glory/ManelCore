@@ -21,6 +21,8 @@ class Entreprise(GraphNodePayload):
     pays: str | None = None
     ville: str | None = None
     secteur_principal: str | None = None
+    telegram_token: str | None = None
+    telegram_chat_id: str | None = None
     score_confiance: float | None = None
     created_at: str | None = None
     updated_at: str | None = None
@@ -69,6 +71,23 @@ class Message(GraphNodePayload):
     intent: str | None = None
     sentiment: str | None = None
     resume_ia: str | None = None
+    # Champs email spécifiques
+    from_email: str | None = None
+    from_name: str | None = None
+    to_email: str | None = None
+    cc_email: str | None = None
+    reply_to: str | None = None
+    message_id_header: str | None = None
+    in_reply_to: str | None = None
+    uid_imap: str | None = None
+    priorite: str | None = None
+    classification: str | None = None
+    auto_replied: bool | None = None
+    compte_recepteur: str | None = None
+    has_attachments: bool | None = None
+    attachment_names: str | None = None
+    taille_octets: int | None = None
+    contenu_html: str | None = None
 
 
 @dataclass(slots=True, kw_only=True)

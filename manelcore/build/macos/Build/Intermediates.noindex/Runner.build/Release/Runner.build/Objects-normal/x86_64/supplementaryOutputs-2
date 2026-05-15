@@ -1,0 +1,12 @@
+{
+  "/Users/mazong/Documents/ManelCore/manelcore/macos/Runner/MainFlutterWindow.swift" : {
+    "abi-baseline-json" : "/Users/mazong/Documents/ManelCore/manelcore/build/macos/Build/Intermediates.noindex/Runner.build/Release/Runner.build/Objects-normal/x86_64/manelcore.abi.json",
+    "const-values" : "/Users/mazong/Documents/ManelCore/manelcore/build/macos/Build/Intermediates.noindex/Runner.build/Release/Runner.build/Objects-normal/x86_64/Runner-primary.swiftconstvalues",
+    "dependencies" : "/Users/mazong/Documents/ManelCore/manelcore/build/macos/Build/Intermediates.noindex/Runner.build/Release/Runner.build/Objects-normal/x86_64/Runner-primary.d",
+    "diagnostics" : "/Users/mazong/Documents/ManelCore/manelcore/build/macos/Build/Intermediates.noindex/Runner.build/Release/Runner.build/Objects-normal/x86_64/Runner-primary.dia",
+    "objc-header" : "/Users/mazong/Documents/ManelCore/manelcore/build/macos/Build/Intermediates.noindex/Runner.build/Release/Runner.build/Objects-normal/x86_64/manelcore-Swift.h",
+    "swiftdoc" : "/Users/mazong/Documents/ManelCore/manelcore/build/macos/Build/Intermediates.noindex/Runner.build/Release/Runner.build/Objects-normal/x86_64/manelcore.swiftdoc",
+    "swiftmodule" : "/Users/mazong/Documents/ManelCore/manelcore/build/macos/Build/Intermediates.noindex/Runner.build/Release/Runner.build/Objects-normal/x86_64/manelcore.swiftmodule",
+    "swiftsourceinfo" : "/Users/mazong/Documents/ManelCore/manelcore/build/macos/Build/Intermediates.noindex/Runner.build/Release/Runner.build/Objects-normal/x86_64/manelcore.swiftsourceinfo"
+  }
+}

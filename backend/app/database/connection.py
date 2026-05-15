@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
@@ -17,12 +18,18 @@ class Neo4jSettings:
 
     @classmethod
     def from_env(cls) -> "Neo4jSettings":
-        load_dotenv()
+        backend_env = Path(__file__).resolve().parents[2] / ".env"
+        load_dotenv(backend_env)
+        settings = _load_runtime_settings()
         return cls(
-            uri=os.getenv("NEO4J_URI", "bolt://localhost:7687"),
-            username=os.getenv("NEO4J_USERNAME", "neo4j"),
-            password=os.getenv("NEO4J_PASSWORD", ""),
-            database=os.getenv("NEO4J_DATABASE", "neo4j"),
+            uri=os.getenv("NEO4J_URI") or settings.get("neo4j_uri") or "bolt://localhost:7687",
+            username=os.getenv("NEO4J_USERNAME") or settings.get("neo4j_username") or "neo4j",
+            password=_first_secret(
+                os.getenv("NEO4J_PASSWORD"),
+                settings.get("neo4j_password"),
+                "password",
+            ),
+            database=os.getenv("NEO4J_DATABASE") or settings.get("neo4j_database") or "neo4j",
         )
 
 
@@ -70,3 +77,20 @@ class Neo4jConnection:
 
     def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
         self.close()
+
+
+def _load_runtime_settings() -> dict[str, Any]:
+    try:
+        from app.services.settings_service import load as load_settings
+
+        return load_settings()
+    except Exception:
+        return {}
+
+
+def _first_secret(*values: Any) -> str:
+    for value in values:
+        text = str(value or "").strip()
+        if text and text != "********":
+            return text
+    return ""

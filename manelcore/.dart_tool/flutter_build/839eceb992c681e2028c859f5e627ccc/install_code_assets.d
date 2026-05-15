@@ -1,0 +1,1 @@
+ /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/flutter_build/839eceb992c681e2028c859f5e627ccc/native_assets.json:  /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/16e3573553/objective_c.dylib /Users/mazong/Documents/ManelCore/manelcore/.dart_tool/hooks_runner/shared/objective_c/build/285c64e3c7/objective_c.dylib

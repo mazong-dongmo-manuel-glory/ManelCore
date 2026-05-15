@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter pub *)",
+      "Bash(/Users/mazong/Documents/ManelCore/.venv/bin/python -m uvicorn app.api.main:app --host 0.0.0.0 --port 8000 --reload)",
+      "Bash(echo \"Backend PID: $!\")",
+      "Bash(curl -s http://localhost:8000/health)",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s http://localhost:8000/)",
+      "Bash(PYTHONPATH=/Users/mazong/Documents/ManelCore/backend /Users/mazong/Documents/ManelCore/.venv/bin/python -m uvicorn app.api.main:app --host 0.0.0.0 --port 8000 --reload)",
+      "Bash(curl -s http://localhost:8000/opportunities)",
+      "Bash(docker network *)"
+    ]
+  }
+}

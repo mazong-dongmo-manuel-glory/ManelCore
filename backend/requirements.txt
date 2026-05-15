@@ -1,4 +1,16 @@
-browser-use
 imap-tools
 neo4j
 python-dotenv
+langgraph
+langchain-core
+langchain-openai
+langchain-google-genai
+fastapi
+httpx
+uvicorn[standard]
+python-telegram-bot
+pydantic
+pydantic-settings
+sse-starlette
+browser-use
+playwright

@@ -33,6 +33,24 @@ from .queries import (
 NodeInput = Mapping[str, Any] | GraphNodePayload
 
 
+def _serialize_neo4j(value: Any) -> Any:
+    """Recursively convert Neo4j temporal/spatial types to JSON-safe primitives."""
+    if value is None:
+        return None
+    if isinstance(value, dict):
+        return {k: _serialize_neo4j(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_serialize_neo4j(v) for v in value]
+    # Neo4j DateTime / Date / Time all have isoformat()
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    # Fallback for any other neo4j type
+    try:
+        return str(value)
+    except Exception:
+        return None
+
+
 class GraphRepository:
     def __init__(self, connection: Neo4jConnection):
         self.connection = connection
@@ -63,12 +81,12 @@ class GraphRepository:
                 "updated_at": updated_at,
             },
         )
-        return result[0]["node"] if result else {}
+        return _serialize_neo4j(result[0]["node"]) if result else {}
 
     def get_node(self, label: str, node_id: str) -> dict[str, Any] | None:
         query = build_get_node_query(label)
         result = self.connection.execute_read(query, {"id": node_id})
-        return result[0]["node"] if result else None
+        return _serialize_neo4j(result[0]["node"]) if result else None
 
     def find_nodes(
         self,
@@ -82,11 +100,22 @@ class GraphRepository:
         query, parameters = build_find_nodes_query(label, filters, sort_by, descending)
         parameters["limit"] = limit
         result = self.connection.execute_read(query, parameters)
-        return [row["node"] for row in result]
+        return [_serialize_neo4j(row["node"]) for row in result]
 
     def delete_node(self, label: str, node_id: str) -> int:
         query = build_delete_node_query(label)
         result = self.connection.execute_write(query, {"id": node_id})
+        return int(result[0]["deleted_count"]) if result else 0
+
+    def delete_all_data(self) -> int:
+        result = self.connection.execute_write(
+            """
+            MATCH (n)
+            WITH collect(n) AS nodes, count(n) AS deleted_count
+            FOREACH (node IN nodes | DETACH DELETE node)
+            RETURN deleted_count
+            """
+        )
         return int(result[0]["deleted_count"]) if result else 0
 
     def create_relationship(
@@ -107,7 +136,7 @@ class GraphRepository:
                 "properties": dict(properties or {}),
             },
         )
-        return result[0] if result else {}
+        return _serialize_neo4j(result[0]) if result else {}
 
     def get_related_nodes(
         self,
