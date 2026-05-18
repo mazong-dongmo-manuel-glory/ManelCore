@@ -24,7 +24,7 @@ DEFAULT_NODE_LABELS: tuple[str, ...] = (
 DEFAULT_INDEXES: dict[str, tuple[str, ...]] = {
     "Entreprise": ("nom", "site_web", "secteur_principal", "ville", "pays"),
     "Contact": ("email", "nom", "linkedin"),
-    "Opportunite": ("titre", "type", "source", "statut", "date_limite"),
+    "Opportunite": ("titre", "type", "source", "statut", "date_limite", "seao_uuid", "score_pertinence"),
     "Secteur": ("nom",),
     "Message": ("canal", "direction", "intent", "classification", "from_email", "uid_imap", "compte_recepteur", "date_envoi"),
     "Conversation": ("canal", "statut"),

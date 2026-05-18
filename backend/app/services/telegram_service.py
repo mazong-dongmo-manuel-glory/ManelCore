@@ -179,7 +179,12 @@ class TelegramService:
     # ── Helpers partagés ─────────────────────────────────────────────────────
 
     async def _aria_reply(self, chat_id: str, question: str) -> str:
-        """Call ARIA (LM Studio + RAG) and return the full response text."""
+        """Call ARIA (LM Studio + RAG + tools) and return the formatted response.
+
+        Les actions (tool_call/tool_result) sont jointes au texte avec un
+        préfixe lisible pour Telegram. Les blocs <action>...</action> bruts
+        sont supprimés du texte affiché.
+        """
         messages = self._conversation_messages(chat_id)
         pending = self._pending_emails.get(chat_id)
         if pending:
@@ -194,9 +199,10 @@ class TelegramService:
             })
         messages.append({"role": "user", "content": question})
         payload  = {"messages": messages, "use_rag": True, "max_tokens": 1000, "temperature": 0.3}
-        full_text = ""
+        text_buffer = ""
+        actions_log: list[str] = []
         try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
+            async with httpx.AsyncClient(timeout=180.0) as client:
                 async with client.stream("POST", f"{_API}/chat/stream",
                                          headers={"Content-Type": "application/json"},
                                          content=json.dumps(payload)) as resp:
@@ -208,13 +214,31 @@ class TelegramService:
                             continue
                         try:
                             chunk = json.loads(raw)
-                            if "content" in chunk:
-                                full_text += chunk["content"]
                         except Exception:
-                            pass
+                            continue
+                        if "content" in chunk:
+                            text_buffer += chunk["content"]
+                        elif "tool_call" in chunk:
+                            tool = chunk["tool_call"].get("tool", "?")
+                            actions_log.append(f"⚙️ *Action :* `{tool}`")
+                        elif "tool_result" in chunk:
+                            tr = chunk["tool_result"]
+                            res = tr.get("result") or {}
+                            ok = res.get("ok", True)
+                            msg = res.get("message") or res.get("error") or ""
+                            emoji = "✅" if ok else "❌"
+                            actions_log.append(f"{emoji} `{tr.get('tool','?')}` — {msg}" if msg else f"{emoji} `{tr.get('tool','?')}`")
         except Exception as exc:
             return f"❌ ARIA indisponible: {exc}"
-        return full_text.strip() or "Je n'ai pas pu générer une réponse."
+
+        # Supprime les blocs <action>{...}</action> du texte visible
+        cleaned = re.sub(r"<action>.*?</action>", "", text_buffer, flags=re.DOTALL | re.IGNORECASE).strip()
+        parts: list[str] = []
+        if actions_log:
+            parts.append("\n".join(actions_log))
+        if cleaned:
+            parts.append(cleaned)
+        return "\n\n".join(parts) or "Je n'ai pas pu générer une réponse."
 
     def _conversation_messages(self, chat_id: str) -> list[dict[str, str]]:
         return list(self._chat_memory.get(chat_id, [])[-10:])
@@ -716,14 +740,21 @@ class TelegramService:
         if app is None:
             self._active_tokens.discard(self.token)
             return
+        # On suppresse TOUTES les exceptions de teardown : python-telegram-bot
+        # lève parfois RuntimeError("This HTTPXRequest is not initialized!")
+        # quand le client httpx a déjà été fermé, c'est inoffensif au shutdown.
         try:
             updater = getattr(app, "updater", None)
             if updater is not None and getattr(updater, "running", False):
-                await updater.stop()
+                with contextlib.suppress(Exception):
+                    await updater.stop()
             if getattr(app, "running", False):
-                await app.stop()
+                with contextlib.suppress(Exception):
+                    await app.stop()
             with contextlib.suppress(Exception):
                 await app.shutdown()
+        except Exception as exc:
+            logger.warning("Erreur ignorée pendant l'arrêt du bot Telegram : %s", exc)
         finally:
             self._app = None
             self._active_tokens.discard(self.token)

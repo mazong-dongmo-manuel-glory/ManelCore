@@ -383,6 +383,8 @@ class EmailAgentService:
             err_msg = str(exc)
             if "nodename nor servname provided" in err_msg or "getaddrinfo failed" in err_msg:
                 logger.error("IMAP fetch failed (%s): Serveur IMAP introuvable. Vérifiez MAILER_IMAP_SERVER dans votre .env.", account)
+            elif exc.__class__.__name__ == "MailboxLoginError":
+                logger.error("IMAP fetch failed (%s): authentification refusée. Vérifiez l'adresse et le mot de passe du compte.", account)
             else:
                 logger.error("IMAP fetch failed (%s): %s", account, repr(exc))
             return []

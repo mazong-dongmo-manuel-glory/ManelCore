@@ -51,7 +51,16 @@ class Opportunite(GraphNodePayload):
     budget: float | None = None
     score_pertinence: float | None = None
     resume: str | None = None
+    description: str | None = None
     exigences: str | None = None
+    organisation: str | None = None
+    lieu: str | None = None
+    numero: str | None = None
+    reference_id: str | None = None
+    seao_uuid: str | None = None
+    contact_email: str | None = None
+    contact_nom: str | None = None
+    draft_email: str | None = None
     created_at: str | None = None
 
 

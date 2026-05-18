@@ -1,15 +1,15 @@
 {
   "llm_url": "http://localhost:1234/v1",
-  "llm_model": "google/gemma-4-e4b",
+  "llm_model": "gemma-4-e4b-it-mlx",
   "llm_api_key": "lm-studio",
   "neo4j_uri": "bolt://localhost:7687",
   "neo4j_password": "********",
   "email": "manuel.mazong@manelcanada.ca",
   "email_password": "********",
-  "imap_server": "mail.manelcanca.ca",
+  "imap_server": "mail.manelcanada.ca",
   "telegram_token": "8789173596:AAHeWRwfGD_GBqXvX0a-7OiI8uF_ipmTwmQ",
   "telegram_chat_id": "",
   "explorer_interval": 5,
-  "search_prompt_hint": "",
+  "search_prompt_hint": "Cherche les offres qui nous permette de faire du placement de personnel en préposer au beneficiare, mécanicien et d'autre poste de ce type",
   "google_api_key": ""
 }

@@ -26,6 +26,8 @@ from app.services.rag_service import RagService
 from app.services.settings_service import load as load_settings, save as save_settings
 from app.services.telegram_service import TelegramService
 from app.services.explorer_service import get_explorer_service
+from app.services import browser_sessions
+from app.services import tools as chat_tools
 
 _rag = RagService()
 
@@ -40,6 +42,30 @@ app.add_middleware(
 
 # Telegram bot (démarré en background au lancement)
 _telegram: TelegramService | None = None
+_telegram_restart_lock = asyncio.Lock()
+
+
+async def _restart_telegram(token: str) -> None:
+    """Redémarre le bot Telegram de façon atomique (lock partagé).
+
+    Élimine la race entre /config et /settings qui essayaient tous deux
+    de stop+start le même bot en parallèle.
+    """
+    global _telegram
+    async with _telegram_restart_lock:
+        if _telegram is not None:
+            try:
+                await _telegram.stop_polling_async()
+            except Exception:
+                pass
+        _telegram = TelegramService(token=token)
+        try:
+            await _telegram.start_polling_async()
+        except Exception as exc:
+            # Ne jamais faire échouer la sauvegarde des settings à cause du bot
+            import logging as _logging
+            _logging.getLogger(__name__).warning("Démarrage Telegram échoué : %s", exc)
+
 
 @app.on_event("startup")
 async def _startup():
@@ -127,8 +153,12 @@ class OpportunityCreate(BaseModel):
     date_limite: Optional[str] = None
     score_pertinence: Optional[float] = 0.5
     resume: Optional[str] = None
+    description: Optional[str] = None
     exigences: Optional[str] = None
     budget: Optional[float] = None
+    lieu: Optional[str] = None
+    contact_email: Optional[str] = None
+    contact_nom: Optional[str] = None
 
 class OpportunityUpdate(BaseModel):
     titre: Optional[str] = None
@@ -141,8 +171,12 @@ class OpportunityUpdate(BaseModel):
     date_limite: Optional[str] = None
     score_pertinence: Optional[float] = None
     resume: Optional[str] = None
+    description: Optional[str] = None
     exigences: Optional[str] = None
     budget: Optional[float] = None
+    lieu: Optional[str] = None
+    contact_email: Optional[str] = None
+    contact_nom: Optional[str] = None
 
 class ContactUpdate(BaseModel):
     nom: Optional[str] = None
@@ -225,7 +259,7 @@ async def erase_all_data():
 
 @app.post("/config")
 async def update_config(config: ConfigUpdate):
-    global _telegram
+    """Sauvegarde le profil entreprise. Le restart Telegram est géré par /settings."""
     try:
         with Neo4jConnection() as conn:
             repo = GraphRepository(conn)
@@ -239,15 +273,7 @@ async def update_config(config: ConfigUpdate):
             })
             for sector in config.sectors:
                 repo.upsert_secteur({"nom": sector})
-        
-        # Re-initialiser le bot si le token a changé
-        if config.telegram_token:
-            if _telegram:
-                await _telegram.stop_polling_async()
-            _telegram = TelegramService(token=config.telegram_token)
-            asyncio.create_task(_telegram.start_polling_async())
-            
-        return {"status": "ok", "message": "Configuration mise à jour et bot initialisé."}
+        return {"status": "ok", "message": "Configuration mise à jour."}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
@@ -280,6 +306,8 @@ class SettingsPayload(BaseModel):
     telegram_token:     Optional[str] = None
     telegram_chat_id:   Optional[str] = None
     explorer_interval:  Optional[int] = None
+    scheduler_mode:     Optional[str] = None      # 'interval' | 'daily'
+    scheduled_time:     Optional[str] = None      # 'HH:MM'
     search_prompt_hint: Optional[str] = None
     google_api_key:     Optional[str] = None
 
@@ -303,19 +331,69 @@ async def get_settings():
 @app.post("/settings")
 async def update_settings(payload: SettingsPayload):
     """Persist runtime settings to data/settings.json and sync env vars."""
-    global _telegram
     data = payload.model_dump(exclude_none=True)
     saved = save_settings(data)
 
-    # Restart Telegram bot if token changed
+    # Restart Telegram bot (atomique via lock) si un nouveau token est fourni
     new_token = data.get("telegram_token")
     if new_token and new_token != "********":
-        if _telegram:
-            await _telegram.stop_polling_async()
-        _telegram = TelegramService(token=new_token)
-        asyncio.create_task(_telegram.start_polling_async())
+        # Fire-and-forget : ne bloque pas la réponse HTTP
+        asyncio.create_task(_restart_telegram(new_token))
 
     return {"status": "ok", "saved": list(saved.keys())}
+
+
+# ─── Sessions navigateur (LinkedIn / Indeed) ─────────────────────────────────
+
+@app.get("/browser-sessions")
+async def list_browser_sessions():
+    """État de toutes les sessions navigateur configurables."""
+    statuses = browser_sessions.all_statuses()
+    # Ajoute l'état du login en cours pour chaque plateforme
+    for s in statuses:
+        s["login"] = browser_sessions.get_login_status(s["platform"])
+    return {"sessions": statuses}
+
+
+@app.post("/browser-sessions/{platform}/login")
+async def browser_session_login(platform: str):
+    """Lance un navigateur visible pour login interactif."""
+    try:
+        result = await browser_sessions.start_login(platform)
+        return result
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/browser-sessions/{platform}/login/finish")
+async def browser_session_login_finish(platform: str):
+    """L'utilisateur indique qu'il a terminé le login → ferme le navigateur."""
+    try:
+        return await browser_sessions.finish_login(platform)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/browser-sessions/{platform}")
+async def browser_session_status(platform: str):
+    """Statut d'une session spécifique (configurée + login en cours)."""
+    if platform not in browser_sessions.PLATFORM_CONFIG:
+        raise HTTPException(status_code=404, detail="Plateforme inconnue")
+    return {
+        **browser_sessions.session_status(platform),
+        "login": browser_sessions.get_login_status(platform),
+    }
+
+
+@app.delete("/browser-sessions/{platform}")
+async def browser_session_clear(platform: str):
+    """Supprime la session sauvegardée pour une plateforme."""
+    if platform not in browser_sessions.PLATFORM_CONFIG:
+        raise HTTPException(status_code=404, detail="Plateforme inconnue")
+    ok = browser_sessions.clear_session(platform)
+    if not ok:
+        raise HTTPException(status_code=500, detail="Impossible de supprimer la session")
+    return {"status": "ok", "platform": platform}
 
 
 # ─── Scrape & generate company profile ───────────────────────────────────────
@@ -327,17 +405,39 @@ async def scrape_profile(req: ScrapeProfileRequest):
     if not url.startswith(("http://", "https://")):
         url = "https://" + url
 
-    # 1. Fetch the page
+    base_url = os.getenv("MODEL_BASE_URL", "http://localhost:1234/v1").rstrip("/")
+
+    # 0. Vérifier que LM Studio est joignable AVANT de scraper
     try:
-        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True,
-                                     headers={"User-Agent": "Mozilla/5.0 (compatible; ManelCore/1.0)"}) as client:
+        async with httpx.AsyncClient(timeout=3.0) as probe:
+            r = await probe.get(f"{base_url}/models")
+            if r.status_code != 200:
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"LM Studio injoignable ({base_url}). Lancez le serveur local avant de générer le profil.",
+                )
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(
+            status_code=503,
+            detail=f"LM Studio injoignable ({base_url}). Lancez le serveur local avant de générer le profil.",
+        )
+
+    # 1. Récupérer la page
+    try:
+        async with httpx.AsyncClient(
+            timeout=15.0,
+            follow_redirects=True,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; ManelCore/1.0)"},
+        ) as client:
             r = await client.get(url)
             r.raise_for_status()
             html = r.text
     except Exception as exc:
         raise HTTPException(status_code=422, detail=f"Impossible de récupérer l'URL : {exc}")
 
-    # 2. Extract readable text
+    # 2. Extraire le texte lisible
     soup = BeautifulSoup(html, "html.parser")
     for tag in soup(["script", "style", "nav", "footer", "header", "noscript", "meta", "link"]):
         tag.decompose()
@@ -347,12 +447,13 @@ async def scrape_profile(req: ScrapeProfileRequest):
     if len(cleaned) < 80:
         raise HTTPException(status_code=422, detail="Le contenu extrait est trop court — vérifiez l'URL.")
 
-    # 3. Ask LLM to generate the profile
+    # 3. Demander au LLM de générer le profil
     llm = ChatOpenAI(
         model=os.getenv("MODEL", "google/gemma-4-e4b"),
-        base_url=os.getenv("MODEL_BASE_URL", "http://localhost:1234/v1"),
+        base_url=base_url,
         api_key=os.getenv("API_KEY", "lm-studio"),
         max_tokens=800,
+        timeout=180.0,  # Gemma local est lent — timeout HTTP large
     )
     prompt = (
         "Tu es un expert en développement des affaires au Québec.\n"
@@ -365,8 +466,24 @@ async def scrape_profile(req: ScrapeProfileRequest):
         "=== PROFIL GÉNÉRÉ ==="
     )
     try:
-        response = await asyncio.wait_for(llm.ainvoke(prompt), timeout=45.0)
-        profile = response.content.strip()
+        # Timeout porté à 180s : Gemma local met souvent 1-2 min sur un profil long
+        response = await asyncio.wait_for(llm.ainvoke(prompt), timeout=180.0)
+        profile = (response.content or "").strip()
+        if not profile:
+            raise HTTPException(
+                status_code=502,
+                detail="Le modèle a renvoyé une réponse vide. Vérifiez que le modèle est bien chargé dans LM Studio.",
+            )
+    except asyncio.TimeoutError:
+        raise HTTPException(
+            status_code=504,
+            detail=(
+                "Délai dépassé (180s). Le modèle local est probablement saturé — "
+                "attendez la fin du cycle d'exploration en cours, puis réessayez."
+            ),
+        )
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Erreur LLM : {exc}")
 
@@ -687,23 +804,24 @@ async def send_opportunity_draft(opp_id: str):
             opp = repo.get_node("Opportunite", opp_id)
             if not opp:
                 raise HTTPException(status_code=404, detail="Opportunité non trouvée")
-            
+
             to = opp.get("contact_email")
             body = opp.get("draft_email")
             titre = opp.get("titre", "Opportunité")
-            
+
             if not to or not body:
                 raise HTTPException(status_code=400, detail="Aucun brouillon ou contact disponible")
-            
-            # Use the existing email service
-            from app.services.email_service import get_email_service
-            email_service = get_email_service()
-            await email_service.send_email(to, f"Intérêt pour : {titre}", body)
-            
-            # Update status
+
+            agent = get_email_agent()
+            ok = await agent.send_email(to, f"Intérêt pour : {titre}", body)
+            if not ok:
+                raise HTTPException(status_code=500, detail="Envoi échoué — vérifiez la configuration email.")
+
             repo.upsert_opportunite({"id": opp_id, "statut": "en_cours"})
-            
+
         return {"status": "ok", "message": f"Email envoyé à {to}"}
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
@@ -839,11 +957,11 @@ async def update_candidat(candidat_id: str, body: CandidatUpdate):
         raise HTTPException(status_code=500, detail=str(exc))
 
 @app.patch("/candidats/{candidat_id}/status")
-async def update_candidat_status(candidat_id: str, statut: str):
+async def update_candidat_status(candidat_id: str, body: OpportunityStatusUpdate):
     try:
         with Neo4jConnection() as conn:
             repo = GraphRepository(conn)
-            repo.upsert_candidature({"id": candidat_id, "statut": statut})
+            repo.upsert_candidature({"id": candidat_id, "statut": body.statut})
         return {"status": "ok"}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
@@ -1038,7 +1156,6 @@ async def chat_stream(req: ChatRequest):
     enriched_messages = list(req.messages)
 
     if req.use_rag:
-        # Extract last user message for context retrieval
         last_user = next(
             (m["content"] for m in reversed(req.messages) if m.get("role") == "user"),
             "",
@@ -1046,8 +1163,6 @@ async def chat_stream(req: ChatRequest):
         try:
             rag_result = await asyncio.to_thread(_rag.build_context, last_user)
             rag_meta = rag_result
-
-            # Prepend RAG system prompt (or replace existing system message)
             rag_system = {
                 "role": "system",
                 "content": (
@@ -1055,66 +1170,99 @@ async def chat_stream(req: ChatRequest):
                     "Ta mission est d'aider le dirigeant à identifier les meilleures opportunités et à gérer ses communications de façon ultra-professionnelle.\n\n"
                     "CONSIGNES DE STYLE :\n"
                     "- Réponds en français impeccable, sur un ton calme, confiant et expert.\n"
-                    "- Utilise un formatage structuré (points de liste, gras) pour faciliter la lecture sur mobile.\n"
+                    "- Utilise un formatage Markdown (titres, points de liste, gras) pour faciliter la lecture.\n"
                     "- Sois proactive : si tu vois une opportunité à haut score (90%+), souligne-la immédiatement.\n\n"
-                    "CAPACITÉS :\n"
-                    "- Tu as un accès direct aux données Neo4j (CRM, opportunités, RH).\n"
-                    "- Tu peux analyser les emails et proposer des brouillons pertinents.\n"
-                    "- Tu peux lancer des recherches de nouveaux contrats (SEAO, LinkedIn).\n\n"
+                    + chat_tools.tools_system_prompt() + "\n\n"
                     "CONTEXTE DE L'ENTREPRISE :\n"
                     + rag_result["system_block"]
                 ),
             }
-            # Remove any existing system message then prepend the enriched one
             enriched_messages = [m for m in enriched_messages if m.get("role") != "system"]
             enriched_messages = [rag_system] + enriched_messages
-        except Exception as exc:
-            # RAG failure is non-blocking — fall back to bare system prompt
+        except Exception:
             enriched_messages = [
-                {"role": "system", "content": "Tu es ARIA, l'assistante intelligente de ManelCore."}
+                {"role": "system",
+                 "content": "Tu es ARIA, l'assistante intelligente de ManelCore.\n\n" + chat_tools.tools_system_prompt()}
             ] + [m for m in enriched_messages if m.get("role") != "system"]
+    else:
+        # Toujours injecter les outils, même sans RAG
+        if not any(m.get("role") == "system" for m in enriched_messages):
+            enriched_messages = [
+                {"role": "system",
+                 "content": "Tu es ARIA, l'assistante intelligente de ManelCore.\n\n" + chat_tools.tools_system_prompt()}
+            ] + enriched_messages
 
-    async def _generate() -> AsyncGenerator[str, None]:
-        # First event: send RAG metadata so the UI can show the context badge
-        if req.use_rag:
-            yield f"data: {json.dumps({'rag': rag_meta})}\n\n"
-
+    async def _call_llm(messages: list[dict], buffer_text: list[str]) -> AsyncGenerator[str, None]:
+        """Stream le LLM, accumule dans buffer_text, yield les chunks SSE."""
         payload = {
             "model": model,
-            "messages": enriched_messages,
+            "messages": messages,
             "temperature": req.temperature,
             "max_tokens": req.max_tokens,
             "stream": True,
         }
-        try:
-            async with httpx.AsyncClient(timeout=None) as client:
-                async with client.stream(
-                    "POST",
-                    f"{base_url}/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {api_key}",
-                        "Content-Type": "application/json",
-                    },
-                    json=payload,
-                ) as response:
-                    async for line in response.aiter_lines():
-                        line = line.strip()
-                        if not line or not line.startswith("data:"):
-                            continue
-                        data = line.removeprefix("data:").strip()
-                        if data == "[DONE]":
-                            yield "data: [DONE]\n\n"
-                            return
-                        try:
-                            chunk = json.loads(data)
-                            delta = chunk["choices"][0].get("delta", {})
-                            content = delta.get("content", "")
-                            if content:
-                                yield f"data: {json.dumps({'content': content})}\n\n"
-                        except Exception:
-                            continue
-        except Exception as exc:
-            yield f"data: {json.dumps({'error': str(exc)})}\n\n"
+        async with httpx.AsyncClient(timeout=None) as client:
+            async with client.stream(
+                "POST",
+                f"{base_url}/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json=payload,
+            ) as response:
+                async for line in response.aiter_lines():
+                    line = line.strip()
+                    if not line or not line.startswith("data:"):
+                        continue
+                    data = line.removeprefix("data:").strip()
+                    if data == "[DONE]":
+                        return
+                    try:
+                        chunk = json.loads(data)
+                        delta = chunk["choices"][0].get("delta", {})
+                        content = delta.get("content", "")
+                        if content:
+                            buffer_text.append(content)
+                            yield f"data: {json.dumps({'content': content})}\n\n"
+                    except Exception:
+                        continue
+
+    async def _generate() -> AsyncGenerator[str, None]:
+        if req.use_rag:
+            yield f"data: {json.dumps({'rag': rag_meta})}\n\n"
+
+        messages = list(enriched_messages)
+        # Boucle outil-réponse : jusqu'à 3 itérations max pour éviter l'infini
+        for _ in range(3):
+            buffer: list[str] = []
+            try:
+                async for chunk in _call_llm(messages, buffer):
+                    yield chunk
+            except Exception as exc:
+                yield f"data: {json.dumps({'error': str(exc)})}\n\n"
+                yield "data: [DONE]\n\n"
+                return
+
+            full_text = "".join(buffer).strip()
+            action = chat_tools.extract_action(full_text)
+            if not action:
+                yield "data: [DONE]\n\n"
+                return
+
+            tool, args = action
+            yield f"data: {json.dumps({'tool_call': {'tool': tool, 'args': args}})}\n\n"
+            result = await chat_tools.invoke_tool(tool, args)
+            yield f"data: {json.dumps({'tool_result': {'tool': tool, 'result': result}})}\n\n"
+
+            # Re-injecter le tour pour permettre au LLM de confirmer
+            messages.append({"role": "assistant", "content": full_text})
+            messages.append({
+                "role": "system",
+                "content": (
+                    f"Résultat de l'outil `{tool}` :\n```json\n"
+                    f"{json.dumps(result, ensure_ascii=False, indent=2)}\n```\n"
+                    "Confirme brièvement à l'utilisateur en français. N'émets PAS de nouvelle action."
+                ),
+            })
+        yield "data: [DONE]\n\n"
 
     return StreamingResponse(_generate(), media_type="text/event-stream")
 

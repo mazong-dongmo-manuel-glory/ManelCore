@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from app.agents.explorer.graph import create_explorer_graph
@@ -17,7 +17,8 @@ class ExplorerService:
     def __init__(self):
         self._task: asyncio.Task | None = None
         self._running = False
-        self._interval = 30 # minutes
+        self._interval = 30  # minutes (mode "interval")
+        # _next_run_at sert pour le mode "daily" (heure quotidienne fixe)
 
     async def start_background_loop(self):
         """Starts the background exploration loop."""
@@ -33,19 +34,54 @@ class ExplorerService:
             self._task.cancel()
         logger.info("Background Explorer Service stopped.")
 
+    def _compute_next_delay(self, settings: dict[str, Any]) -> float:
+        """Retourne le nombre de secondes jusqu'au prochain run.
+
+        Deux modes :
+        - mode='daily' avec scheduled_time='HH:MM' → run quotidien à cette heure
+        - mode='interval' (défaut) avec explorer_interval (minutes) → toutes les X min
+        """
+        mode = settings.get("scheduler_mode", "interval")
+        if mode == "daily":
+            raw = (settings.get("scheduled_time") or "").strip()
+            try:
+                hour_str, minute_str = raw.split(":")
+                target_hour = int(hour_str)
+                target_minute = int(minute_str)
+            except (ValueError, AttributeError):
+                logger.warning("scheduled_time invalide (%r), fallback en mode interval.", raw)
+                return max(int(settings.get("explorer_interval", 30)), 1) * 60
+
+            now = datetime.now()
+            target = now.replace(hour=target_hour, minute=target_minute, second=0, microsecond=0)
+            if target <= now:
+                target = target + timedelta(days=1)
+            delay = (target - now).total_seconds()
+            logger.info("Prochain cycle planifié à %s (dans %.1f min).", target.isoformat(), delay / 60)
+            return delay
+
+        # Mode interval par défaut
+        minutes = int(settings.get("explorer_interval", 30))
+        minutes = max(minutes, 1)
+        self._interval = minutes
+        logger.info("Prochain cycle dans %d minutes (mode interval).", minutes)
+        return minutes * 60
+
     async def _loop(self):
         while self._running:
             settings = load_settings()
-            self._interval = int(settings.get("explorer_interval", 30))
-            
+            delay = self._compute_next_delay(settings)
+            await asyncio.sleep(delay)
+            if not self._running:
+                break
+
             logger.info("Starting scheduled exploration cycle...")
             try:
                 await self.run_once()
             except Exception as e:
                 logger.error(f"Error during scheduled exploration: {e}")
-            
-            logger.info(f"Exploration cycle complete. Waiting {self._interval} minutes.")
-            await asyncio.sleep(self._interval * 60)
+
+            logger.info("Exploration cycle complete.")
 
     async def run_once(self):
         """Runs one cycle of the explorer graph."""

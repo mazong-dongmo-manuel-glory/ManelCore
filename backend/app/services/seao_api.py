@@ -31,16 +31,20 @@ class SeaoApiService:
 
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             for query in cleaned_queries:
-                response = await client.get(
-                    f"{self.base_url}/recherche",
-                    params={
-                        "flTxtAllWrds": query,
-                        "statIds": self.DEFAULT_STATUS_IDS,
-                        "tpIds": self.DEFAULT_TYPE_IDS,
-                    },
-                    headers={"Accept": "application/json"},
-                )
-                response.raise_for_status()
+                try:
+                    response = await client.get(
+                        f"{self.base_url}/recherche",
+                        params={
+                            "flTxtAllWrds": query,
+                            "statIds": self.DEFAULT_STATUS_IDS,
+                            "tpIds": self.DEFAULT_TYPE_IDS,
+                        },
+                        headers={"Accept": "application/json"},
+                    )
+                    response.raise_for_status()
+                except Exception:
+                    # Une requête échouée ne doit pas faire planter toute la recherche
+                    continue
 
                 payload = response.json()
                 results = payload.get("apiData", {}).get("results", [])
@@ -55,16 +59,25 @@ class SeaoApiService:
                     found.append(self._normalise_opportunity(item))
                     if len(found) >= limit:
                         break
-            
-            if fetch_details:
-                # Hydrate descriptions for top results
-                tasks = [self.get_details(str(o["seao_uuid"])) for o in found if o.get("seao_uuid")]
-                details = await asyncio.gather(*tasks, return_exceptions=True)
-                for i, detail in enumerate(details):
-                    if isinstance(detail, dict) and detail.get("resume"):
-                        found[i]["resume"] = detail["resume"]
+
+            if fetch_details and found:
+                # Hydratation : on garde la correspondance index ↔ uuid pour éviter le mismatch
+                indexed = [(i, o["seao_uuid"]) for i, o in enumerate(found) if o.get("seao_uuid")]
+                if indexed:
+                    details = await asyncio.gather(
+                        *(self.get_details(str(uuid)) for _, uuid in indexed),
+                        return_exceptions=True,
+                    )
+                    for (idx, _), detail in zip(indexed, details):
+                        if not isinstance(detail, dict):
+                            continue
+                        if detail.get("resume"):
+                            found[idx]["resume"] = detail["resume"]
+                            found[idx]["description"] = detail["resume"]
                         if detail.get("exigences"):
-                            found[i]["exigences"] = detail["exigences"]
+                            found[idx]["exigences"] = detail["exigences"]
+                        if detail.get("budget"):
+                            found[idx]["budget"] = detail["budget"]
 
         return found
 
@@ -115,6 +128,17 @@ class SeaoApiService:
         return f"https://seao.gouv.qc.ca/avis-resultat-recherche/consulter?ItemId={uuid}&prov=RechercheAvancee"
 
     @staticmethod
+    def _clean_date(value: Any) -> str:
+        """Normalise les dates SEAO (ISO 8601 → YYYY-MM-DD) et écarte les valeurs vides."""
+        if not value or str(value).lower() in ("none", "null"):
+            return ""
+        text = str(value).strip()
+        # SEAO renvoie souvent "2025-01-15T00:00:00Z" → on garde la partie date
+        if "T" in text:
+            text = text.split("T", 1)[0]
+        return text
+
+    @staticmethod
     def _normalise_opportunity(item: dict[str, Any]) -> dict[str, Any]:
         uuid = str(item.get("uuid") or "")
         url = "https://seao.gouv.qc.ca/avis-resultat-recherche/consulter"
@@ -124,8 +148,8 @@ class SeaoApiService:
         return {
             "titre": item.get("titre") or item.get("numero") or "Sans titre",
             "organisation": item.get("nomDonneurOuvrage") or "",
-            "date_publication": item.get("datePublicationUtc") or "",
-            "date_limite": item.get("dateFermetureUtc") or "",
+            "date_publication": SeaoApiService._clean_date(item.get("datePublicationUtc")),
+            "date_limite": SeaoApiService._clean_date(item.get("dateFermetureUtc")),
             "url": url,
             "source": "SEAO",
             "type": "appel_offres",
@@ -134,4 +158,5 @@ class SeaoApiService:
             "reference_id": item.get("id"),
             "seao_uuid": uuid,
             "resume": "",
+            "description": "",
         }

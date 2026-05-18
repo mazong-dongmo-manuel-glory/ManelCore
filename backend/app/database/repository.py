@@ -152,7 +152,7 @@ class GraphRepository:
             query,
             {"source_id": source_id, "limit": limit},
         )
-        return result
+        return [_serialize_neo4j(row) for row in result]
 
     def delete_relationship(
         self,
